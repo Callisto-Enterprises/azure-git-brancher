@@ -1,5 +1,7 @@
 # azure-git-brancher README
 
+Icons provided by [Icons8](https://icons8.com)
+
 Creates a git branch in the format below when provided with a work item number:
 
 `{workItemNumber}-{workItemTitle}`
