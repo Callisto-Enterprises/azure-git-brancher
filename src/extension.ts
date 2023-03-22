@@ -17,17 +17,23 @@ function getWorkItem(id: number): Promise<string> {
   });
 }
 
-function checkoutGitBranch(branchName: string): Promise<string> {
+function checkoutGitBranch(cwd: string, branchName: string): Promise<string> {
   return new Promise((resolve, reject) => {
-    exec(`git checkout -b ${branchName}`, (error, stdout, stderr) => {
-      if (error) {
-        reject(error);
-      } else if (stderr) {
-        reject(stderr);
-      } else {
-        resolve(stdout);
+    exec(
+      `git checkout -b ${branchName}`,
+      {
+        cwd,
+      },
+      (error, stdout, stderr) => {
+        if (error) {
+          reject(error);
+        } else if (stderr) {
+          reject(stderr);
+        } else {
+          resolve(stdout);
+        }
       }
-    });
+    );
   });
 }
 
@@ -42,6 +48,13 @@ export function activate(context: vscode.ExtensionContext) {
   // Use the console to output diagnostic information (console.log) and errors (console.error)
   // This line of code will only be executed once when your extension is activated
   console.log('Congratulations, your extension "azure-git-brancher" is now active!');
+
+  // Current working directory
+  const cwd = vscode.workspace.workspaceFolders?.[0].uri.fsPath;
+  if (cwd === undefined) {
+    vscode.window.showErrorMessage("No workspace folder is open.");
+    return;
+  }
 
   // The command has been defined in the package.json file
   // Now provide the implementation of the command with registerCommand
@@ -68,7 +81,7 @@ export function activate(context: vscode.ExtensionContext) {
         const x: { fields: { "System.Title": string } } = JSON.parse(workItem);
         const branchName = `${workItemNumber}-${getGitBranchName(x.fields["System.Title"])}`;
 
-        await checkoutGitBranch(branchName);
+        await checkoutGitBranch(cwd, branchName);
 
         vscode.window.showInformationMessage(`Created branch: ${branchName}`);
       } catch (error) {
