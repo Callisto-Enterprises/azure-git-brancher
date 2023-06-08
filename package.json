@@ -2,7 +2,7 @@
   "name": "azure-git-brancher",
   "displayName": "Azure Git Brancher",
   "description": "",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "repository": {
     "type": "git",
     "url": "https://github.com/Callisto-Enterprises/azure-git-brancher.git"
@@ -23,7 +23,28 @@
         "command": "azure-git-brancher.createBranchFromWorkItem",
         "title": "Create Branch From Work Item"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "Azure Git Brancher",
+      "properties": {
+        "azure-git-brancher.organization": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": "",
+          "description": "The Azure DevOps organization to use for creating branches."
+        },
+        "azure-git-brancher.pat": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": "",
+          "description": "The Azure DevOps personal access token to use for creating branches."
+        }
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
@@ -40,5 +61,8 @@
     "@typescript-eslint/parser": "^5.53.0",
     "eslint": "^8.34.0",
     "typescript": "^4.9.5"
+  },
+  "dependencies": {
+    "axios": "^1.4.0"
   }
 }

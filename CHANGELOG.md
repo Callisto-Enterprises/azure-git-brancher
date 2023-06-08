@@ -22,3 +22,9 @@ All notable changes to the "azure-git-brancher" extension will be documented in 
 ### Fixed
 
 - Fixed issue where git command was not called in correct working directory
+
+## [1.0.3] - 2023-06-07
+
+### Changed
+
+- Use Azure DevOps REST API to get work item title instead of Azure CLI

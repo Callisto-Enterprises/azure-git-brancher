@@ -2,19 +2,23 @@
 // Import the module and reference it with the alias vscode in your code below
 import { exec } from "child_process";
 import * as vscode from "vscode";
+import axios from "axios";
 
-function getWorkItem(id: number): Promise<string> {
-  return new Promise((resolve, reject) => {
-    exec(`az boards work-item show --id ${id}`, (error, stdout, stderr) => {
-      if (error) {
-        reject(error);
-      } else if (stderr) {
-        reject(stderr);
-      } else {
-        resolve(stdout);
-      }
-    });
+async function getWorkItemTitle(id: number) {
+  const organization = vscode.workspace.getConfiguration("azure-git-brancher").get("organization");
+  const pat = vscode.workspace.getConfiguration("azure-git-brancher").get("pat");
+
+  console.log(organization);
+  console.log(pat);
+  
+  const response = await axios.get(`https://dev.azure.com/${organization}/_apis/wit/workitems/${id}?api-version=7.0&fields=System.Title`, {
+    headers: {
+      'Authorization': `Basic ${btoa(':'+pat)}`
+    },
   });
+  
+  const x: { fields: { "System.Title": string } } = response.data;
+  return x.fields["System.Title"];
 }
 
 function checkoutGitBranch(cwd: string, branchName: string): Promise<string> {
@@ -75,11 +79,9 @@ export function activate(context: vscode.ExtensionContext) {
 
     if (workItemNumber !== undefined) {
       try {
-        const workItem = await getWorkItem(+workItemNumber);
-
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        const x: { fields: { "System.Title": string } } = JSON.parse(workItem);
-        const branchName = `${workItemNumber}-${getGitBranchName(x.fields["System.Title"])}`;
+        const workItemTitle = await getWorkItemTitle(+workItemNumber);
+        console.log(workItemTitle);
+        const branchName = `${workItemNumber}-${getGitBranchName(workItemTitle)}`;
 
         await checkoutGitBranch(cwd, branchName);
 
@@ -96,4 +98,4 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 // This method is called when your extension is deactivated
-export function deactivate() {}
+export function deactivate() { }
