@@ -21,7 +21,11 @@
     "commands": [
       {
         "command": "azure-git-brancher.createBranchFromWorkItem",
-        "title": "Create Branch From Work Item"
+        "title": "DevOps: Create Branch From Work Item"
+      },
+      {
+        "command": "azure-git-brancher.createWorkItemWithBranch",
+        "title": "DevOps: Create Work Item With Branch"
       }
     ],
     "configuration": {

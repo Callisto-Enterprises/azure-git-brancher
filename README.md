@@ -14,6 +14,17 @@ The branch name goes through a few transformations to make it more git friendly:
 
 ## Requirements
 
+### Generate Azure DevOps Personal Access Token
+
+- Work Items (Read & write)[^1]
+- Code (Read & write)[^2]
+
+[^1]: Only used create/get work items
+[^2]: Only used to create PRs
+
+![PAT permissions](images/pat-permissions.png)
+
 In the Vscode settings, you will need to provide the following:
+
 - `azure-git-brancher.organization`: The name of your Azure DevOps organization
 - `azure-git-brancher.pat`: Your Azure DevOps Personal Access Token

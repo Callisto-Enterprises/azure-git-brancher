@@ -10,13 +10,13 @@ async function getWorkItemTitle(id: number) {
 
   console.log(organization);
   console.log(pat);
-  
+
   const response = await axios.get(`https://dev.azure.com/${organization}/_apis/wit/workitems/${id}?api-version=7.0&fields=System.Title`, {
     headers: {
-      'Authorization': `Basic ${btoa(':'+pat)}`
+      Authorization: `Basic ${Buffer.from(":" + pat).toString("base64")}`,
     },
   });
-  
+
   const x: { fields: { "System.Title": string } } = response.data;
   return x.fields["System.Title"];
 }
@@ -95,7 +95,39 @@ export function activate(context: vscode.ExtensionContext) {
   });
 
   context.subscriptions.push(disposable);
+
+  let disposable2 = vscode.commands.registerCommand("azure-git-brancher.createBranchFromWorkItem", async () => {
+    // Prompt the user for the work item number
+    const workItemName = await vscode.window.showInputBox({
+      prompt: "Enter the work item name:",
+      validateInput: (value) => {
+        // Check if the input is a positive integer
+        if (value === "") {
+          return "Please enter a work item name.";
+        }
+        return null;
+      },
+    });
+
+    if (workItemName !== undefined) {
+      try {
+        // const workItemTitle = await getWorkItemTitle(+workItemNumber);
+        // console.log(workItemTitle);
+        // const branchName = `${workItemNumber}-${getGitBranchName(workItemTitle)}`;
+
+        // await checkoutGitBranch(cwd, branchName);
+
+        vscode.window.showInformationMessage(`Created branch: ${workItemName}`);
+      } catch (error) {
+        if (error instanceof Error) {
+          vscode.window.showErrorMessage(error.message);
+        }
+      }
+    }
+  });
+
+  context.subscriptions.push(disposable2);
 }
 
 // This method is called when your extension is deactivated
-export function deactivate() { }
+export function deactivate() {}
