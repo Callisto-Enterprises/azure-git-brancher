@@ -1,24 +1,25 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
 import { exec } from "child_process";
 import * as vscode from "vscode";
-import axios from "axios";
 
-async function getWorkItemTitle(id: number) {
-  const organization = vscode.workspace.getConfiguration("azure-git-brancher").get("organization");
-  const pat = vscode.workspace.getConfiguration("azure-git-brancher").get("pat");
+type WorkItemResponse = {
+  fields: {
+    "System.Title": string;
+  };
+};
 
-  console.log(organization);
-  console.log(pat);
-
-  const response = await axios.get(`https://dev.azure.com/${organization}/_apis/wit/workitems/${id}?api-version=7.0&fields=System.Title`, {
+async function getWorkItemTitle(organization: string, pat: string, id: number) {
+  const response = await fetch(`https://dev.azure.com/${organization}/_apis/wit/workitems/${id}?api-version=7.0&fields=System.Title`, {
     headers: {
       Authorization: `Basic ${Buffer.from(":" + pat).toString("base64")}`,
     },
   });
 
-  const x: { fields: { "System.Title": string } } = response.data;
-  return x.fields["System.Title"];
+  if (!response.ok) {
+    throw new Error(`Failed to fetch work item: ${response.statusText}`);
+  }
+
+  const data = (await response.json()) as WorkItemResponse;
+  return data.fields["System.Title"];
 }
 
 function checkoutGitBranch(cwd: string, branchName: string): Promise<string> {
@@ -46,13 +47,7 @@ function getGitBranchName(workItemTitle: string) {
   return workItemTitle.trim().replace(/\s+/g, "-").toLowerCase();
 }
 
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
-  // Use the console to output diagnostic information (console.log) and errors (console.error)
-  // This line of code will only be executed once when your extension is activated
-  console.log('Congratulations, your extension "azure-git-brancher" is now active!');
-
   // Current working directory
   const cwd = vscode.workspace.workspaceFolders?.[0].uri.fsPath;
   if (cwd === undefined) {
@@ -60,10 +55,19 @@ export function activate(context: vscode.ExtensionContext) {
     return;
   }
 
-  // The command has been defined in the package.json file
-  // Now provide the implementation of the command with registerCommand
-  // The commandId parameter must match the command field in package.json
-  let disposable = vscode.commands.registerCommand("azure-git-brancher.createBranchFromWorkItem", async () => {
+  const disposable = vscode.commands.registerCommand("turbo-task-3000.createWorkItemWithBranch", async () => {
+    // Check if the user has configured the organization and PAT
+    const organization = vscode.workspace.getConfiguration("turbo-task-3000").get<string>("organization");
+    if (!organization) {
+      vscode.window.showErrorMessage("Please configure the organization in settings.");
+      return;
+    }
+    const pat = vscode.workspace.getConfiguration("turbo-task-3000").get<string>("pat");
+    if (!pat) {
+      vscode.window.showErrorMessage("Please configure the Personal Access Token (PAT) in settings.");
+      return;
+    }
+
     // Prompt the user for the work item number
     const workItemNumber = await vscode.window.showInputBox({
       prompt: "Enter the work item number:",
@@ -79,7 +83,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     if (workItemNumber !== undefined) {
       try {
-        const workItemTitle = await getWorkItemTitle(+workItemNumber);
+        const workItemTitle = await getWorkItemTitle(organization, pat, +workItemNumber);
         console.log(workItemTitle);
         const branchName = `${workItemNumber}-${getGitBranchName(workItemTitle)}`;
 
@@ -95,39 +99,6 @@ export function activate(context: vscode.ExtensionContext) {
   });
 
   context.subscriptions.push(disposable);
-
-  let disposable2 = vscode.commands.registerCommand("azure-git-brancher.createBranchFromWorkItem", async () => {
-    // Prompt the user for the work item number
-    const workItemName = await vscode.window.showInputBox({
-      prompt: "Enter the work item name:",
-      validateInput: (value) => {
-        // Check if the input is a positive integer
-        if (value === "") {
-          return "Please enter a work item name.";
-        }
-        return null;
-      },
-    });
-
-    if (workItemName !== undefined) {
-      try {
-        // const workItemTitle = await getWorkItemTitle(+workItemNumber);
-        // console.log(workItemTitle);
-        // const branchName = `${workItemNumber}-${getGitBranchName(workItemTitle)}`;
-
-        // await checkoutGitBranch(cwd, branchName);
-
-        vscode.window.showInformationMessage(`Created branch: ${workItemName}`);
-      } catch (error) {
-        if (error instanceof Error) {
-          vscode.window.showErrorMessage(error.message);
-        }
-      }
-    }
-  });
-
-  context.subscriptions.push(disposable2);
 }
 
-// This method is called when your extension is deactivated
 export function deactivate() {}

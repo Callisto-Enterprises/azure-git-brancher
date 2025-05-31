@@ -1,17 +1,17 @@
 {
-  "name": "azure-git-brancher",
-  "displayName": "Azure Git Brancher",
+  "name": "turbo-task-3000",
+  "displayName": "Turbo Task 3000",
   "description": "",
-  "version": "1.0.3",
+  "version": "1.0.6",
   "repository": {
     "type": "git",
     "url": "https://github.com/Callisto-Enterprises/azure-git-brancher.git"
   },
   "icon": "images/icon.png",
   "engines": {
-    "vscode": "^1.76.0"
+    "vscode": "^1.100.0"
   },
-  "publisher": "CALLISTOENTEPRRISESLLC",
+  "publisher": "Callisto Enterprises LLC.",
   "categories": [
     "Other"
   ],
@@ -20,32 +20,22 @@
   "contributes": {
     "commands": [
       {
-        "command": "azure-git-brancher.createBranchFromWorkItem",
-        "title": "DevOps: Create Branch From Work Item"
-      },
-      {
-        "command": "azure-git-brancher.createWorkItemWithBranch",
-        "title": "DevOps: Create Work Item With Branch"
+        "command": "turbo-task-3000.createWorkItemWithBranch",
+        "title": "Turbo Task 3000: Create Work Item With Branch"
       }
     ],
     "configuration": {
-      "title": "Azure Git Brancher",
+      "title": "Turbo Task 3000",
       "properties": {
-        "azure-git-brancher.organization": {
-          "type": [
-            "string",
-            "null"
-          ],
+        "turbo-task-3000.organization": {
+          "type": "string",
           "default": "",
-          "description": "The Azure DevOps organization to use for creating branches."
+          "description": "The Azure DevOps organization to use."
         },
-        "azure-git-brancher.pat": {
-          "type": [
-            "string",
-            "null"
-          ],
+        "turbo-task-3000.pat": {
+          "type": "string",
           "default": "",
-          "description": "The Azure DevOps personal access token to use for creating branches."
+          "description": "The Azure DevOps PAT to use."
         }
       }
     }
@@ -56,11 +46,12 @@
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
-    "publish": "vsce package && vsce publish"
+    "publish": "vsce package && vsce publish",
+    "all": "npm run vscode:prepublish && npm run publish"
   },
   "devDependencies": {
-    "@types/node": "16.x",
-    "@types/vscode": "^1.76.0",
+    "@types/node": "20.x",
+    "@types/vscode": "^1.100.0",
     "@typescript-eslint/eslint-plugin": "^5.53.0",
     "@typescript-eslint/parser": "^5.53.0",
     "eslint": "^8.34.0",
