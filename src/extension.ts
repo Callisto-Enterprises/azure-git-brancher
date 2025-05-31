@@ -2,24 +2,67 @@ import { exec } from "child_process";
 import * as vscode from "vscode";
 
 type WorkItemResponse = {
+  id: number;
   fields: {
     "System.Title": string;
   };
 };
 
-async function getWorkItemTitle(organization: string, pat: string, id: number) {
-  const response = await fetch(`https://dev.azure.com/${organization}/_apis/wit/workitems/${id}?api-version=7.0&fields=System.Title`, {
+// Get Project Name from the last part of the URL
+// Input: https://callistoenterprises@dev.azure.com/callistoenterprises/turbo-test/_git/turbo-test
+// Output: turbo-test
+function getProjectNameFromUrl(url: string): string {
+  const parts = url.split("/");
+  const index = parts.indexOf("_git");
+  if (index !== -1 && index > 0) {
+    return parts[index - 1];
+  }
+  throw new Error("Invalid URL format. Unable to extract project name.");
+}
+
+// git config --get remote.origin.url
+function getGitRemoteUrl(cwd: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    exec("git config --get remote.origin.url", { cwd }, (error, stdout, stderr) => {
+      if (error) {
+        reject(error);
+      } else if (stderr) {
+        reject(new Error(stderr));
+      } else {
+        const url = stdout.trim();
+        if (!url) {
+          reject(new Error("No remote URL found. Please ensure you are in a Git repository."));
+        } else {
+          resolve(url);
+        }
+      }
+    });
+  });
+}
+
+async function createWorkItem(organization: string, pat: string, projectName: string, workItemTitle: string) {
+  const request = {
+    op: "add",
+    path: "/fields/System.Title",
+    from: null,
+    value: workItemTitle,
+  };
+
+  const response = await fetch(`https://dev.azure.com/${organization}/${projectName}/_apis/wit/workitems/$Task?api-version=7.1`, {
+    method: "POST",
     headers: {
+      "Content-Type": "application/json-patch+json",
       Authorization: `Basic ${Buffer.from(":" + pat).toString("base64")}`,
     },
+    body: JSON.stringify([request]),
   });
 
   if (!response.ok) {
-    throw new Error(`Failed to fetch work item: ${response.statusText}`);
+    throw new Error(`Failed to create work item: ${response.statusText}`);
   }
-
   const data = (await response.json()) as WorkItemResponse;
-  return data.fields["System.Title"];
+  console.log(`Created work item with ID: ${data.id}`);
+  return data.id;
 }
 
 function checkoutGitBranch(cwd: string, branchName: string): Promise<string> {
@@ -48,7 +91,6 @@ function getGitBranchName(workItemTitle: string) {
 }
 
 export function activate(context: vscode.ExtensionContext) {
-  // Current working directory
   const cwd = vscode.workspace.workspaceFolders?.[0].uri.fsPath;
   if (cwd === undefined) {
     vscode.window.showErrorMessage("No workspace folder is open.");
@@ -68,32 +110,40 @@ export function activate(context: vscode.ExtensionContext) {
       return;
     }
 
+    const gitRemoteUrl = await getGitRemoteUrl(cwd);
+    if (!gitRemoteUrl) {
+      vscode.window.showErrorMessage("No remote URL found. Please ensure you are in a Git repository.");
+      return;
+    }
+
+    // Extract the project name from the remote URL
+    const projectName = getProjectNameFromUrl(gitRemoteUrl);
+    if (!projectName) {
+      vscode.window.showErrorMessage("Unable to extract project name from the remote URL.");
+      return;
+    }
+    console.log(`Project Name: ${projectName}`);
+
     // Prompt the user for the work item number
-    const workItemNumber = await vscode.window.showInputBox({
-      prompt: "Enter the work item number:",
-      validateInput: (value) => {
-        // Check if the input is a positive integer
-        const parsed = parseInt(value);
-        if (isNaN(parsed) || parsed <= 0) {
-          return "Please enter a positive integer.";
-        }
-        return null;
-      },
+    const workItemName = await vscode.window.showInputBox({
+      prompt: "Enter Name for the new work item",
     });
 
-    if (workItemNumber !== undefined) {
-      try {
-        const workItemTitle = await getWorkItemTitle(organization, pat, +workItemNumber);
-        console.log(workItemTitle);
-        const branchName = `${workItemNumber}-${getGitBranchName(workItemTitle)}`;
+    if (!workItemName) {
+      vscode.window.showErrorMessage("Work item name cannot be empty.");
+      return;
+    }
 
-        await checkoutGitBranch(cwd, branchName);
+    try {
+      const workItemNumber = await createWorkItem(organization, pat, projectName, workItemName);
+      const branchName = `${workItemNumber}-${getGitBranchName(workItemName)}`;
 
-        vscode.window.showInformationMessage(`Created branch: ${branchName}`);
-      } catch (error) {
-        if (error instanceof Error) {
-          vscode.window.showErrorMessage(error.message);
-        }
+      await checkoutGitBranch(cwd, branchName);
+
+      vscode.window.showInformationMessage(`Created branch: ${branchName}`);
+    } catch (error) {
+      if (error instanceof Error) {
+        vscode.window.showErrorMessage(error.message);
       }
     }
   });
