@@ -20,33 +20,50 @@ function getProjectNameFromUrl(url: string): string {
   throw new Error("Invalid URL format. Unable to extract project name.");
 }
 
-// git config --get remote.origin.url
-function getGitRemoteUrl(cwd: string): Promise<string> {
+function getCwdSingleLineResponse(cwd: string, command: string): Promise<string> {
   return new Promise((resolve, reject) => {
-    exec("git config --get remote.origin.url", { cwd }, (error, stdout, stderr) => {
+    exec(command, { cwd }, (error, stdout, stderr) => {
       if (error) {
         reject(error);
       } else if (stderr) {
         reject(new Error(stderr));
       } else {
-        const url = stdout.trim();
-        if (!url) {
-          reject(new Error("No remote URL found. Please ensure you are in a Git repository."));
+        const response = stdout.trim();
+        if (!response) {
+          reject(new Error("No response received. Please ensure you are in a valid Git repository."));
         } else {
-          resolve(url);
+          resolve(response);
         }
       }
     });
   });
 }
 
-async function createWorkItem(organization: string, pat: string, projectName: string, workItemTitle: string) {
-  const request = {
-    op: "add",
-    path: "/fields/System.Title",
-    from: null,
-    value: workItemTitle,
-  };
+// git config --get user.email
+async function getGitUserEmail(cwd: string): Promise<string> {
+  return getCwdSingleLineResponse(cwd, "git config --get user.email");
+}
+
+// git config --get remote.origin.url
+async function getGitRemoteUrl(cwd: string): Promise<string> {
+  return getCwdSingleLineResponse(cwd, "git config --get remote.origin.url");
+}
+
+async function createWorkItem(organization: string, pat: string, projectName: string, workItemTitle: string, email: string) {
+  const requests = [
+    {
+      op: "add",
+      path: "/fields/System.Title",
+      from: null,
+      value: workItemTitle,
+    },
+    {
+      op: "add",
+      path: "/fields/System.AssignedTo",
+      from: null,
+      value: "skumar@callisto.enterprises",
+    },
+  ];
 
   const response = await fetch(`https://dev.azure.com/${organization}/${projectName}/_apis/wit/workitems/$Task?api-version=7.1`, {
     method: "POST",
@@ -54,7 +71,7 @@ async function createWorkItem(organization: string, pat: string, projectName: st
       "Content-Type": "application/json-patch+json",
       Authorization: `Basic ${Buffer.from(":" + pat).toString("base64")}`,
     },
-    body: JSON.stringify([request]),
+    body: JSON.stringify(requests),
   });
 
   if (!response.ok) {
@@ -134,8 +151,12 @@ export function activate(context: vscode.ExtensionContext) {
       return;
     }
 
+    // Get the user's email from Git configuration
+    const email = await getGitUserEmail(cwd);
+
     try {
-      const workItemNumber = await createWorkItem(organization, pat, projectName, workItemName);
+      const email = await getGitUserEmail(cwd);
+      const workItemNumber = await createWorkItem(organization, pat, projectName, workItemName, email);
       const branchName = `${workItemNumber}-${getGitBranchName(workItemName)}`;
 
       await checkoutGitBranch(cwd, branchName);
