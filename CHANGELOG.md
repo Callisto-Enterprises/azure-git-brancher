@@ -1,6 +1,6 @@
 # Change Log
 
-All notable changes to the "azure-git-brancher" extension will be documented in this file.
+All notable changes to the "turbo-task-3000" extension will be documented in this file.
 
 ## [Unreleased]
 
@@ -28,3 +28,9 @@ All notable changes to the "azure-git-brancher" extension will be documented in 
 ### Changed
 
 - Use Azure DevOps REST API to get work item title instead of Azure CLI
+
+## [1.0.6] - 2025-05-31
+
+- Removed dependency on `axios` :D
+- Now creates work items and branches in the same command
+- Automatically assigns the work item to the user based on `git config user.email`
